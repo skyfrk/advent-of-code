@@ -1,57 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 
-var input = File.ReadAllLines("input.txt");
+var input = File.ReadAllText("input.txt", Encoding.UTF8);
 
-void SolvePart1()
-{
-    var currentStr = string.Empty;
-    var totalSum = 0;
+var part1 = input.Split("\r\n\r\n").Select(group => group.Replace("\r\n", string.Empty).Distinct().Count()).Sum();
+var part2 = input.Split("\r\n\r\n").Select(group => group.Split("\r\n").Aggregate((acc, x) => string.Concat(acc.Intersect(x))).Count()).Sum();
 
-    foreach (var line in input)
-    {
-        if (line == string.Empty)
-        {
-            totalSum += currentStr.Distinct().Count();
-            currentStr = string.Empty;
-        }
-        else
-        {
-            currentStr += line;
-        }
-    }
-
-    totalSum += currentStr.Distinct().Count();
-
-    Console.WriteLine($"Part 1: {totalSum}");
-}
-
-void SolvePart2()
-{
-    List<List<char>> currentGroup = new();
-
-    var totalSum = 0;
-
-    foreach (var line in input)
-    {
-        if (line == string.Empty)
-        {
-            totalSum += currentGroup.Aggregate((acc, x) => acc.Intersect(x).ToList()).Count;
-            currentGroup = new();
-        }
-        else
-        {
-            currentGroup.Add(line.ToList());
-        }
-    }
-
-    totalSum += currentGroup.Aggregate((acc, x) => acc.Intersect(x).ToList()).Count;
-
-    Console.WriteLine($"Part 2: {totalSum}");
-}
-
-
-SolvePart1();
-SolvePart2();
+Console.WriteLine($"Part 1: {part1}\nPart 2: {part2}");
