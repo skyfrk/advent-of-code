@@ -26,5 +26,28 @@ string[] GetBagsThatCanContainOne(string color)
     return bagsDirect.Select(b => b.Key).Concat(bagsIndirect).Distinct().ToArray();
 }
 
+(string Name, (int Count, string Color)[] Bags)[] GetBagsInBag((string Name, (int Count, string Color)[] Bags) bag)
+{
+    var bags = new List<(string Name, (int Count, string Color)[] Bags)>();
+
+    foreach (var (count, color) in bag.Bags)
+    {
+        for(int i = 0; i < count; i++)
+        {
+            var innerBag = allBags[color];
+            bags.Add((color, innerBag));
+        }
+    }
+
+    var childBags = bags.SelectMany(b => GetBagsInBag(b));
+
+    return bags.Concat(childBags).ToArray();
+}
+
+
 Console.WriteLine($"Part 1: {GetBagsThatCanContainOne("shiny gold").Length}");
+
+var shinyGoldBag = allBags["shiny gold"];
+
+Console.WriteLine($"Part 2: {GetBagsInBag(("shiny gold", shinyGoldBag)).Length}");
     
