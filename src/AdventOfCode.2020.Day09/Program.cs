@@ -11,3 +11,19 @@ for (int i = 25; i < input.Length; i++)
     Console.WriteLine($"Part 1: {input[i]}");
     break;
 }
+
+for (int i = 0; i < input.Length; i++)
+{
+    long sum = input[i];
+    for (int j = i + 1; j < input.Length; j++)
+    {
+        sum += input[j];
+        if (sum == 1930745883)
+        {
+            var range = input[i..(j + 1)];
+            Console.WriteLine($"Part 2: {range.Min() + range.Max()}");
+            break;
+        }
+        if (sum > 1930745883) break;
+    }
+}
