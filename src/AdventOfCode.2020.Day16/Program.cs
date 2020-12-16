@@ -32,13 +32,59 @@ foreach (var line in input)
     }
 }
 
-var invalidValuesSum = tickets
+void SolvePart1()
+{
+    var invalidValuesSum = tickets
     .ToArray()[1..] // remove own ticket
     .SelectMany(t => t)
     // false added to often
     .Aggregate(0, (acc, value) => fields.Any(f => f.Validate(value)) ? acc : acc + value);
 
-Console.WriteLine($"Part 1: {invalidValuesSum}");
+    Console.WriteLine($"Part 1: {invalidValuesSum}");
+}
+
+
+void SolvePart2()
+{
+    var validTickets = tickets.Where(t => t.All(v => fields.Any(f => f.Validate(v)))).ToArray();
+    var ticketLength = validTickets[0].Length;
+    var fieldsInOrder = new Field[ticketLength];
+    var remainingFields = GetRemainingFields();
+
+    List<Field> GetRemainingFields() => fields.Select(f => f).Except(fieldsInOrder).ToList();
+
+    while (remainingFields.Count > 0)
+    {
+        for (int ticketIdx = 0; ticketIdx < ticketLength; ticketIdx++)
+        {
+            foreach (var field in fields)
+            {
+                foreach (var ticket in validTickets)
+                {
+                    if (!field.Validate(ticket[ticketIdx]))
+                    {
+                        remainingFields.Remove(field);
+                        break;
+                    }
+                }
+            }
+
+            if (remainingFields.Count == 1) fieldsInOrder[ticketIdx] = remainingFields[0];
+
+            remainingFields = GetRemainingFields();
+        }
+    }
+
+    long solution = fieldsInOrder
+        .Where(f => f.Name.StartsWith("departure"))
+        .Select(d => Array.IndexOf(fieldsInOrder, d))
+        .Aggregate((long)1, (acc, idx) => acc * tickets[0][idx]);
+
+    Console.WriteLine($"Part 2: {solution}");
+}
+
+SolvePart1();
+SolvePart2();
 
 record Field(string Name, InclusiveRange[] Ranges)
 {
