@@ -75,10 +75,10 @@ void SolvePart2()
         }
     }
 
-    long solution = fieldsInOrder
+    var solution = fieldsInOrder
         .Where(f => f.Name.StartsWith("departure"))
         .Select(d => Array.IndexOf(fieldsInOrder, d))
-        .Aggregate((long)1, (acc, idx) => acc * tickets[0][idx]);
+        .Aggregate(1L, (acc, idx) => acc * tickets[0][idx]);
 
     Console.WriteLine($"Part 2: {solution}");
 }
