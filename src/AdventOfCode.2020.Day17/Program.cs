@@ -3,68 +3,106 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
-var input = File.ReadAllLines("sample.input.txt");
+var input = File.ReadAllLines("input.txt");
 
-var currentState = new List<Cube>();
+Dictionary<(int x, int y, int z), CubeState> currentState = new();
 
+// seed initial state from input
 for(int row = 0; row < input.Length; row++)
 {
     for(int column = 0; column < input[0].Length; column++)
     {
-        currentState.Add(new Cube(IsActive(input[row][column]), column, row, 1));
+
+        var state = input[row][column] switch
+        {
+            '#' => CubeState.Active,
+            '.' => CubeState.Inactive,
+            _ => throw new InvalidOperationException("Invalid state.")
+        };
+
+        currentState.Add((column, row, 1), state);
+    }
+}
+
+// add inactive cubes from t = 0
+var allInitialDirectNeighbors = currentState.SelectMany(x => GetDirectNeighbors(x.Key)).Distinct().ToDictionary(key => key.Key, value => value.Value);
+
+foreach (var neighbor in allInitialDirectNeighbors)
+{
+    if (!currentState.ContainsKey(neighbor.Key))
+    {
+        currentState.Add(neighbor.Key, neighbor.Value);
     }
 }
 
 for (int iteration = 0; iteration < 6; iteration++)
 {
-    var newState = new List<Cube>();
+    Dictionary<(int x, int y, int z), CubeState> nextState = new();
+    Dictionary<(int x, int y, int z), CubeState> allDirectNeighbors = new();
 
-    // TODO get top left and lower right corner of the current cube and add inactive cubes in the new layer around the cube
-}
-
-
-Console.WriteLine($"Part 1: {currentState.Count(c => c.State == CubeState.Active)}");
-
-CubeState IsActive(char v) => v switch
-{
-    '#' => CubeState.Active,
-    '.' => CubeState.Inactive,
-    _ => throw new InvalidOperationException($"Invalid state: {v}")
-};
-
-record Cube(CubeState State, long X, long Y, long Z)
-{
-    public Cube AdjustStateTo(IEnumerable<Cube> currentState)
+    foreach (var (position, cubeState) in currentState)
     {
-        var neighbors = GetNeighbors(currentState);
+        var directNeighbors = GetDirectNeighbors(position);
+        var activeDirectNeighborCount = directNeighbors.Count(x => x.Value == CubeState.Active);
 
-        if (State == CubeState.Active)
+        foreach (var neighbor in directNeighbors)
         {
-            var activeNeighborCount = neighbors.Count(n => n.State == CubeState.Active);
-            if(activeNeighborCount is 2 or 3)
+            if (!allDirectNeighbors.ContainsKey(neighbor.Key))
             {
-                return this;
-            } else
-            {
-                return new Cube(CubeState.Inactive, X, Y, Z);
+                allDirectNeighbors.Add(neighbor.Key, neighbor.Value);
             }
         }
-        else if (State == CubeState.Inactive)
+
+        if (cubeState is CubeState.Active && activeDirectNeighborCount is < 2 or > 3)
         {
-            // TODO
+            nextState.Add(position, CubeState.Inactive);
         }
-
-        throw new InvalidOperationException();
+        else if (cubeState is CubeState.Inactive && activeDirectNeighborCount is 3)
+        {
+            nextState.Add(position, CubeState.Active);
+        }
+        else
+        {
+            nextState.Add(position, cubeState);
+        }
     }
 
-    IEnumerable<Cube> GetNeighbors(IEnumerable<Cube> currentState)
+    foreach (var neighbor in allDirectNeighbors)
     {
-        return currentState.Where(c =>
-            c.X >= X - 1 && c.X <= X + 1 &&
-            c.Y >= Y - 1 && c.Y <= Y + 1 &&
-            c.Z >= Z - 1 && c.Z <= Z + 1
-        );
+        if (!nextState.ContainsKey(neighbor.Key))
+        {
+            nextState.Add(neighbor.Key, neighbor.Value);
+        }
     }
+
+    currentState = nextState;
+}
+
+Console.WriteLine($"Part 1: {currentState.Values.Count(state => state == CubeState.Active)}");
+
+Dictionary <(int x, int y, int z), CubeState> GetDirectNeighbors((int x, int y, int z) position)
+{
+    var neighborOffsets = new List<(int x, int y, int z)>
+    {
+        (-1, -1, 1), (0, -1, 1), (1, -1, 1), (-1, 0, 1), (0, 0, 1), (1, 0, 1), (-1, 1, 1), (0, 1, 1), (1, 1, 1),
+        (-1, -1, 0), (0, -1, 0), (1, -1, 0), (-1, 0, 0), (1, 0, 0), (-1, 1, 0), (0, 1, 0), (1, 1, 0), (-1, -1, -1),
+        (0, -1, -1), (1, -1, -1), (-1, 0, -1), (0, 0, -1), (1, 0, -1), (-1, 1, -1), (0, 1, -1), (1, 1, -1)
+    };
+
+    return neighborOffsets.Select(offset =>
+    {
+        var newPosition = (x: position.x + offset.x, y: position.y + offset.y, z: position.z + offset.z);
+
+        if (currentState.TryGetValue(newPosition, out var cubeState))
+        {
+            return (position: newPosition, state: cubeState);
+        }
+        else
+        {
+            return (position: newPosition, state: CubeState.Inactive);
+        }
+    }).ToDictionary(key => (x: key.position.x, y: key.position.y, z: key.position.z), value => value.state);
+
 }
 
 enum CubeState
