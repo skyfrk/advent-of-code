@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 
-var input = File.ReadAllLines("input.txt");
+var input = File.ReadAllLines("sample.input.txt");
 
 long sum = 0;
 
@@ -13,14 +13,14 @@ var numRegex = new Regex(@"[0-9]");
 foreach (var line in input)
 {
     var tokens = GetTokens(line);
-    var tokenTree = ParseTokens(tokens, null);
+    var tokenTree = ParseTokens(tokens);
     var value = tokenTree.GetValue();
     sum += value;
 }
 
 Console.WriteLine($"Part 1: {sum}");
 
-TokenTree ParseTokens(Token[] tokens, TokenTree leftTree)
+TokenTree ParseTokens(Token[] tokens)
 {
     if (tokens.Length == 1)
     {
@@ -31,102 +31,71 @@ TokenTree ParseTokens(Token[] tokens, TokenTree leftTree)
 
     var remainingTokens = tokens.Select(t => t).ToList();
 
-    while(remainingTokens.Count > 0)
+    TokenTree leftTree = null;
+    TokenTree nextTree = null;
+    Token operatorToken = null;
+
+    while (remainingTokens.Count > 0)
     {
-        if (leftTree == null)
-        {
-            if (remainingTokens[0].Type == TokenType.Number)
-            {
-                var numberTokens = new List<Token>();
-
-                for (int i = 0; i < remainingTokens.Count; i++)
-                {
-                    if (remainingTokens[i].Type == TokenType.Number)
-                    {
-                        numberTokens.Add(remainingTokens[i]);
-                        remainingTokens.RemoveAt(i);
-                    }
-                    else break;
-                }
-
-                var number = int.Parse(string.Concat(numberTokens.Select(t => t.Value.ToString())));
-                var numberToken = new Token(TokenType.Number, number);
-                leftTree = new TokenTree(numberToken, null, null);
-            }
-            else if (remainingTokens[0].Type == TokenType.BracketOpen)
-            {
-                var openBracketCount = 1;
-                var tokensInBrackets = new List<Token>();
-
-                for (int i = 1; i < remainingTokens.Count; i++)
-                {
-                    if (remainingTokens[i].Type == TokenType.BracketOpen) openBracketCount++;
-                    if (remainingTokens[i].Type == TokenType.BracketClose) openBracketCount--;
-
-                    if (openBracketCount == 0)
-                    {
-                        remainingTokens.RemoveAt(i);
-                        break;
-                    }
-
-                    tokensInBrackets.Add(remainingTokens[i]);
-                    remainingTokens.RemoveAt(i);
-                }
-
-                leftTree = ParseTokens(tokensInBrackets.ToArray(), null);
-            }
-            else throw new InvalidOperationException();
-        }
-
-        var operatorToken = remainingTokens[0];
-        remainingTokens.RemoveAt(0);
-        if (operatorToken.Type != TokenType.Multiplication && operatorToken.Type != TokenType.Plus) throw new InvalidOperationException();
-
-        TokenTree rightTree = null;
-
         if (remainingTokens[0].Type == TokenType.Number)
         {
             var numberTokens = new List<Token>();
+            var tokenIndicesToBeRemovedCount = 0;
 
             for (int i = 0; i < remainingTokens.Count; i++)
             {
                 if (remainingTokens[i].Type == TokenType.Number)
                 {
                     numberTokens.Add(remainingTokens[i]);
-                    remainingTokens.RemoveAt(i);
+                    tokenIndicesToBeRemovedCount++;
                 }
                 else break;
             }
 
+            remainingTokens.RemoveRange(0, tokenIndicesToBeRemovedCount);
+
             var number = int.Parse(string.Concat(numberTokens.Select(t => t.Value.ToString())));
             var numberToken = new Token(TokenType.Number, number);
-            rightTree = new TokenTree(numberToken, null, null);
+            nextTree = new TokenTree(numberToken, null, null);
         }
         else if (remainingTokens[0].Type == TokenType.BracketOpen)
         {
             var openBracketCount = 1;
             var tokensInBrackets = new List<Token>();
+            var tokenIndicesToBeRemovedCount = 1;
 
             for (int i = 1; i < remainingTokens.Count; i++)
             {
                 if (remainingTokens[i].Type == TokenType.BracketOpen) openBracketCount++;
                 if (remainingTokens[i].Type == TokenType.BracketClose) openBracketCount--;
 
-                if (openBracketCount == 0)
-                {
-                    remainingTokens.RemoveAt(i);
-                    break;
-                }
+                tokenIndicesToBeRemovedCount++;
+
+                if (openBracketCount == 0) break;
 
                 tokensInBrackets.Add(remainingTokens[i]);
-                remainingTokens.RemoveAt(i);
             }
 
-            rightTree = ParseTokens(tokensInBrackets.ToArray(), null);
-        }
-        else throw new InvalidOperationException();
+            remainingTokens.RemoveRange(0, tokenIndicesToBeRemovedCount);
 
-        leftTree = new TokenTree(operatorToken, leftTree, rightTree);
+            nextTree = ParseTokens(tokensInBrackets.ToArray());
+        }
+        else if (remainingTokens[0].Type is TokenType.Multiplication or TokenType.Plus)
+        {
+            operatorToken = remainingTokens[0];
+            remainingTokens.RemoveAt(0);
+        }
+
+        if (nextTree != null && operatorToken != null)
+        {
+            if (leftTree == null)
+            {
+                leftTree = nextTree;
+                continue;
+            }
+
+            leftTree = new TokenTree(operatorToken, leftTree, nextTree);
+        }
     }
 
     return leftTree;
