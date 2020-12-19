@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 
-var input = File.ReadAllLines("sample.input.txt");
+var input = File.ReadAllLines("input.txt");
 
 long sum = 0;
 
@@ -12,40 +12,8 @@ foreach (var line in input)
 {
     var tokens = GetTokens(line);
     var tokenTree = ParseTokens(tokens);
-    PrintTree(tokenTree);
-    // var value = tokenTree.GetValue();
-    //sum += value;
-}
-
-void PrintTree(TokenTree tree, int spaceCount = 0)
-{
-    var space = string.Empty;
-
-    for(int i = 0; i < spaceCount; i++)
-    {
-        space += " ";
-    }
-
-    if(tree != null)
-    {
-        if(tree.Token.Type == TokenType.Number)
-        {
-            Console.WriteLine($"{space}Number{tree.Token.Value}");
-        }
-        else
-        {
-            Console.WriteLine($"{space}{Enum.GetName(typeof(TokenType), tree.Token.Type)}");
-        }
-        if(tree.LeftChild != null)
-        {
-            PrintTree(tree.LeftChild, spaceCount + 2);
-        }
-        if (tree.RightChild != null)
-        {
-            PrintTree(tree.RightChild, spaceCount + 2);
-        }
-    }
-
+    var value = tokenTree.GetValue();
+    sum += value;
 }
 
 Console.WriteLine($"Part 1: {sum}");
@@ -121,10 +89,13 @@ TokenTree ParseTokens(Token[] tokens)
             if (leftTree == null)
             {
                 leftTree = nextTree;
+                nextTree = null;
                 continue;
             }
 
             leftTree = new TokenTree(operatorToken, leftTree, nextTree);
+            nextTree = null;
+            operatorToken = null;
         }
     }
 
