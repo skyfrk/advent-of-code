@@ -13,6 +13,8 @@ var foods = input.Select(line =>
     return new Food(ingredients.ToList(), allergens.ToList());
 }).ToArray();
 
+Dictionary<string, string> allergenMap = new();
+
 var stateChanged = true;
 
 while (stateChanged)
@@ -37,6 +39,8 @@ while (stateChanged)
                     f.Ingredients.Remove(commonIngredients[0]);
                 }
 
+                allergenMap.Add(allergen, commonIngredients[0]);
+
                 stateChanged = true;
             }
         }
@@ -44,5 +48,6 @@ while (stateChanged)
 }
 
 Console.WriteLine($"Part 1: {foods.Select(f => f.Ingredients.Count).Sum()}");
+Console.WriteLine($"Part 2: {string.Join(',', allergenMap.OrderBy(a => a.Key).Select(x => x.Value))}");
 
 record Food(List<string> Ingredients, List<string> Allergens);

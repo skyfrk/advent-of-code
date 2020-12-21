@@ -2,8 +2,8 @@
 
 https://adventofcode.com/2020/day/21
 
-- Part 1:
-- Part 2:
+- Part 1: 2485
+- Part 2: bqkndvb,zmb,bmrmhm,snhrpv,vflms,bqtvr,qzkjrtl,rkkrx
 
 ## Part 1
 
@@ -45,5 +45,3 @@ In the above example:
 Arrange the ingredients <em>alphabetically by their allergen</em> and separate them by commas to produce your <em>canonical dangerous ingredient list</em>. (There should <em>not be any spaces</em> in your canonical dangerous ingredient list.) In the above example, this would be <em><code>mxmxvkd,sqjhc,fvjkl</code></em>.
 
 Time to stock your raft with supplies. <em>What is your canonical dangerous ingredient list?</em>
-
-
