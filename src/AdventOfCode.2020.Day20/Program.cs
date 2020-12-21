@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 
-var input = File.ReadAllText("sample.input.txt");
+var input = File.ReadAllText("input.txt");
 
 var tileIdRegex = new Regex(@"Tile (\d+):");
 
@@ -26,24 +26,12 @@ tiles.RemoveAt(0);
 
 var iterationCount = 0;
 
-//PrintTile(tiles[0]);
-//tiles[0].Rotate();
-//PrintTile(tiles[0]);
-//tiles[0].Rotate();
-//PrintTile(tiles[0]);
-//tiles[0].Rotate();
-//PrintTile(tiles[0]);
+PrintFullPicture(iterationCount);
+PrintFullPictureTileIds();
 
-//PrintTile(tiles[0]);
-//tiles[0].Flip();
-//PrintTile(tiles[0]);
-
-
+// i assume that there are only unique matching edges...
 while (TryGetNextEmptySpot(out var position))
 {
-    PrintFullPicture(iterationCount);
-    PrintFullPictureTileIds();
-
     // first row doesn't care about the tiles above
     if (position.row == 0)
     {
@@ -78,13 +66,80 @@ while (TryGetNextEmptySpot(out var position))
     }
     else
     {
-        Console.WriteLine("first row complete");
-        // first row should be complete now
+        if(position.column == 0)
+        {
+            if(TryGetMatchForAboveTile(fullPicture[position.row - 1, position.column], out var idx))
+            {
+                fullPicture[position.row, position.column] = tiles[idx];
+                tiles.RemoveAt(idx);
+            }
+            else
+            {
+                // hope that this will not be called twice xD
+                FlipSetTilesInFullPictureAsAWhole();
+            }
+        }
+        else
+        {
+            if (TryGetMatchForAboveAndLeftTile(fullPicture[position.row - 1, position.column], fullPicture[position.row, position.column - 1], out var idx))
+            {
+                fullPicture[position.row, position.column] = tiles[idx];
+                tiles.RemoveAt(idx);
+            }
+            else
+            {
+                throw new InvalidOperationException("fuck");
+            }
+        }
     }
-
     iterationCount++;
+
+    //PrintFullPicture(iterationCount);
+    PrintFullPictureTileIds();
+
+    // System.Threading.Thread.Sleep(200);
 }
 
+List<Tile> targetTiles = new()
+{
+    fullPicture[0, 0],
+    fullPicture[fullPictureEdgeLength - 1, 0],
+    fullPicture[0, fullPictureEdgeLength - 1],
+    fullPicture[fullPictureEdgeLength - 1, fullPictureEdgeLength - 1]
+};
+
+Console.WriteLine($"Part 1: {targetTiles.Aggregate(1L, (acc, tile) => acc * tile.Id)}");
+
+void FlipSetTilesInFullPictureAsAWhole()
+{
+    foreach (var tile in fullPicture)
+    {
+        if(tile != null)
+        {
+            tile.Flip();
+        }
+    }
+
+    var lastRowIncludeInFlip = 0;
+
+    for(int row = 0; row < fullPictureEdgeLength; row++)
+    {
+        if (fullPicture[row, 0] == null) break;
+        lastRowIncludeInFlip = row;
+    }
+
+
+    var copy = new Tile[fullPictureEdgeLength, fullPictureEdgeLength];
+    Array.Copy(fullPicture, copy, fullPicture.Length);
+
+    for (int row = 0; row < lastRowIncludeInFlip; row++)
+    {
+        for (int col = 0; col < fullPictureEdgeLength; col++)
+        {
+            fullPicture[row, col] = copy[lastRowIncludeInFlip - row, col];
+        }
+    }
+}
 
 void PrintTile(Tile tile)
 {
@@ -226,6 +281,49 @@ bool TryGetNextEmptySpot(out (int row, int column) position)
     return false;
 }
 
+bool TryGetMatchForAboveAndLeftTile(Tile above, Tile left, out int matchingTileIdx)
+{
+    for (int i = 0; i < tiles.Count; i++)
+    {
+        for (int rotateCount = 0; rotateCount < 8; rotateCount++)
+        {
+            if (IsAboveBelowLeftRightMatch(above, left, tiles[i]))
+            {
+                matchingTileIdx = i;
+                return true;
+            }
+
+            tiles[i].Rotate();
+
+            if (rotateCount == 3) tiles[i].Flip();
+        }
+    }
+
+    matchingTileIdx = -1;
+    return false;
+}
+
+bool TryGetMatchForAboveTile(Tile above, out int matchingTileIdx)
+{
+    for (int i = 0; i < tiles.Count; i++)
+    {
+        for (int rotateCount = 0; rotateCount < 8; rotateCount++)
+        {
+            if (IsAboveBelowMatch(above, tiles[i]))
+            {
+                matchingTileIdx = i;
+                return true;
+            }
+
+            tiles[i].Rotate();
+
+            if (rotateCount == 3) tiles[i].Flip();
+        }
+    }
+
+    matchingTileIdx = -1;
+    return false;
+}
 
 bool TryGetMatchForLeftTile(Tile left, out int matchingTileIdx)
 {
@@ -249,12 +347,11 @@ bool TryGetMatchForLeftTile(Tile left, out int matchingTileIdx)
     return false;
 }
 
-// this is probably broken
 bool TryGetMatchForRightTile(Tile right, out int matchingTileIdx)
 {
     for (int i = 0; i < tiles.Count; i++)
     {
-        for (int rotateCount = 0; rotateCount < 4; rotateCount++)
+        for (int rotateCount = 0; rotateCount < 8; rotateCount++)
         {
             if (IsLeftRightMatch(tiles[i], right))
             {
@@ -270,6 +367,15 @@ bool TryGetMatchForRightTile(Tile right, out int matchingTileIdx)
 
     matchingTileIdx = -1;
     return false;
+}
+
+bool IsAboveBelowLeftRightMatch(Tile above, Tile left, Tile belowRight)
+{
+    for (int i = 0; i < tileEdgeLength; i++)
+    {
+        if (left.Picture[i, tileEdgeLength - 1] != belowRight.Picture[i, 0] && above.Picture[tileEdgeLength - 1, i] != belowRight.Picture[0, i]) return false;
+    }
+    return true;
 }
 
 bool IsLeftRightMatch(Tile left, Tile right)
@@ -290,7 +396,6 @@ bool IsAboveBelowMatch(Tile above, Tile below)
     return true;
 }
 
-Console.WriteLine("Part 1: {}");
 class Tile
 {
     public int Id { get; set; }
