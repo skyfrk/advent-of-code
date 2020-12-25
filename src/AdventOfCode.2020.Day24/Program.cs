@@ -67,6 +67,41 @@ foreach (var instruction in parsedInput)
 
 Console.WriteLine($"Part 1: {tiles.Count(t => !t.Value)}");
 
+for(int days = 0; days < 100; days++)
+{
+    // add missing neighbors
+    List<(int x, int y)> missingNeighbors = new();
+
+    foreach (var (x, y) in tiles.Keys)
+    {
+        foreach (Direction dir in Enum.GetValues(typeof(Direction))) missingNeighbors.Add(GetPosition((x, y), dir));
+    }
+
+    foreach (var (x, y) in missingNeighbors) if (!tiles.ContainsKey((x, y))) tiles.Add((x, y), true);
+
+    Dictionary<(int x, int y), bool> updatedTiles = new();
+
+    // create delta
+    foreach (var tile in tiles)
+    {
+        var blackNeighborCount = Enum.GetValues(typeof(Direction))
+            .Cast<Direction>()
+            .Count(direction => tiles.TryGetValue(GetPosition(tile.Key, direction), out var isWhite) && !isWhite);
+
+        if (tile.Value && blackNeighborCount is 2) updatedTiles.Add(tile.Key, false);
+
+        if (!tile.Value && blackNeighborCount is 0 or > 2) updatedTiles.Add(tile.Key, true);
+    }
+
+    // apply delta
+    foreach (var updatedTile in updatedTiles)
+    {
+        tiles[updatedTile.Key] = updatedTile.Value;
+    }
+}
+
+Console.WriteLine($"Part 2: {tiles.Count(t => !t.Value)}");
+
 static (int x, int y) GetPosition((int x, int y) from, Direction toDirection)
 {
     var (x, y) = from;
